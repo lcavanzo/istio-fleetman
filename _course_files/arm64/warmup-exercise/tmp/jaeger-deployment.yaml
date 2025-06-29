@@ -1,0 +1,134 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: "6"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"Deployment","metadata":{"annotations":{},"labels":{"app":"jaeger"},"name":"jaeger","namespace":"istio-system"},"spec":{"selector":{"matchLabels":{"app":"jaeger"}},"template":{"metadata":{"annotations":{"prometheus.io/port":"14269","prometheus.io/scrape":"true","sidecar.istio.io/inject":"false"},"labels":{"app":"jaeger"}},"spec":{"containers":[{"env":[{"name":"BADGER_EPHEMERAL","value":"false"},{"name":"SPAN_STORAGE_TYPE","value":"badger"},{"name":"BADGER_DIRECTORY_VALUE","value":"/badger/data"},{"name":"BADGER_DIRECTORY_KEY","value":"/badger/key"},{"name":"COLLECTOR_ZIPKIN_HTTP_PORT","value":"9411"},{"name":"MEMORY_MAX_TRACES","value":"50000"},{"name":"QUERY_BASE_PATH","value":"/jaeger"},{"name":"LOG-LEVEL","value":"debug"}],"image":"docker.io/jaegertracing/all-in-one:1.26","livenessProbe":{"httpGet":{"path":"/","port":14269}},"name":"jaeger","readinessProbe":{"httpGet":{"path":"/","port":14269}},"resources":{"requests":{"cpu":"10m"}},"volumeMounts":[{"mountPath":"/badger","name":"data"}]}],"volumes":[{"emptyDir":{},"name":"data"}]}}}}
+  creationTimestamp: "2025-06-21T05:14:07Z"
+  generation: 6
+  labels:
+    app: jaeger
+  name: jaeger
+  namespace: istio-system
+  resourceVersion: "72317"
+  uid: 05632888-46a4-424d-9b0a-983b0129008c
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: jaeger
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: "2025-06-21T17:06:53-06:00"
+        prometheus.io/port: "14269"
+        prometheus.io/scrape: "true"
+        sidecar.istio.io/inject: "false"
+      creationTimestamp: null
+      labels:
+        app: jaeger
+    spec:
+      containers:
+        - env:
+            - name: BADGER_EPHEMERAL
+              value: "false"
+            - name: SPAN_STORAGE_TYPE
+              value: badger
+            - name: BADGER_DIRECTORY_VALUE
+              value: /badger/data
+            - name: BADGER_DIRECTORY_KEY
+              value: /badger/key
+            - name: COLLECTOR_ZIPKIN_HTTP_PORT
+              value: "9411"
+            - name: COLLECTOR_ZIPKIN_HTTP_SERVER_ENABLED # <--- ADD THIS LINE
+              value: "true" # <--- ADD THIS LINE
+            - name: MEMORY_MAX_TRACES
+              value: "50000"
+            - name: QUERY_BASE_PATH
+              value: /jaeger
+            - name: LOG-LEVEL
+              value: debug
+          image: docker.io/jaegertracing/all-in-one:1.26
+          imagePullPolicy: IfNotPresent
+          ports: # <<<<<<<<<<<<<<<<< ADD THIS BLOCK
+            - containerPort: 14250 # Jaeger Collector gRPC (for Istio sidecars)
+              name: j-grpc
+              protocol: TCP
+            - containerPort: 14268 # Jaeger Collector HTTP (alternative for Istio sidecars)
+              name: j-http
+              protocol: TCP
+            - containerPort: 16686 # Jaeger Query UI (what Kiali connects to)
+              name: j-query
+              protocol: TCP
+            - containerPort: 16685 # Jaeger Query gRPC API (internal communication for Query svc)
+              name: j-query-grpc
+              protocol: TCP
+            # Optional: Agent UDP and HTTP ports if you use standalone agents or config
+            - containerPort: 6831 # Jaeger Agent UDP
+              name: j-agent-udp
+              protocol: UDP
+            - containerPort: 5778 # Jaeger Agent HTTP
+              name: j-agent-http
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 14269
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: jaeger
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /
+              port: 14269
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            requests:
+              cpu: 10m
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+            - mountPath: /badger
+              name: data
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - emptyDir: {}
+          name: data
+status:
+  availableReplicas: 1
+  conditions:
+    - lastTransitionTime: "2025-06-21T22:56:14Z"
+      lastUpdateTime: "2025-06-21T22:56:14Z"
+      message: Deployment has minimum availability.
+      reason: MinimumReplicasAvailable
+      status: "True"
+      type: Available
+    - lastTransitionTime: "2025-06-21T05:14:07Z"
+      lastUpdateTime: "2025-06-21T23:06:54Z"
+      message: ReplicaSet "jaeger-575bff6894" has successfully progressed.
+      reason: NewReplicaSetAvailable
+      status: "True"
+      type: Progressing
+  observedGeneration: 6
+  readyReplicas: 1
+  replicas: 1
+  updatedReplicas: 1
